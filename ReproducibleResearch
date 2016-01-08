@@ -1,0 +1,64 @@
+
+##Code for reading in the dataset and/or processing the data.
+
+activity <- read.csv("~/activity.csv")
+
+##Histogram of the total number of steps taken each day
+
+tx = aggregate(activity$steps, list(activity$date), sum)
+colnames(tx) <- c("date","steps")
+hist(tx$steps,xlab = "steps per day",main = "Frequency of steps taken per day")
+
+##Mean and median number of steps taken each day
+
+tx2 = aggregate(activity$steps, list(activity$date), mean)
+colnames(tx2) <- c("date","steps_mean")
+tx3 = aggregate(activity$steps, list(activity$date), median)
+colnames(tx3) <- c("date","steps_median")
+
+##Time series plot of the average number of steps taken
+
+plot(tx2$date,tx2$steps_mean)
+
+##The 5-minute interval that, on average, contains the maximum number of steps
+
+tx4<-na.omit(activity)
+tx5<-aggregate(tx4$steps,list(tx4$interval),mean) 
+colnames(tx5) <- c("interval","steps_average") 
+max(tx5$steps_average, na.rm = TRUE)
+max_interval <- tx5[which.max(           tx5$steps_average),]
+
+##Code to describe and show a strategy for imputing missing data
+
+NA_omited<-na.omit(activity)
+
+##Histogram of the total number of steps taken each day after missing values are imputed
+
+NA_omited<-na.omit(activity)
+tx <- aggregate(NA_omited$steps, list(NA_omited$date), sum)
+colnames(tx) <- c("date","steps")
+hist(tx$steps,xlab = "steps per day",main = "Frequency of steps taken per day")
+
+##Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+Sys.setlocale("LC_TIME", "es")
+
+NA_omited<-na.omit(activity)
+weekday <- weekdays(as.Date(NA_omited$date, "%Y-%m-%d"))
+for (i in 1:length(weekday)) {
+  if ((weekday[i] == "Saturday") | (weekday[i] == "Sunday")) 
+    weekday[i] = "weekend" else weekday[i] = "weekday"
+}
+NA_omited$weekday <- as.factor(weekday)
+
+clean_data2 <- split(NA_omited, NA_omited$weekday)
+weekday <- clean_data2$weekday
+weekend <- clean_data2$weekend
+step_average_weekday <- tapply(weekday$steps, weekday$interval, sum, simplify = TRUE)/(length(weekday$weekday)/288)
+step_average_weekend <- tapply(weekend$steps, weekend$interval, sum, simplify = TRUE)/(length(weekend$weekday)/288)
+output <- data.frame(steps = c(step_average_weekday, step_average_weekend), 
+                     interval = c(levels(activity$interval), levels(activity$interval)), weekday = as.factor(c(rep("weekday", 
+                                                                                                                   length(step_average_weekday)), rep("weekend", length(step_average_weekend)))))
+library(lattice)
+xyplot(steps ~ interval | weekday, data = output, layout = c(1, 2), ylab = "number of steps", 
+       main = "Average number of steps for all weekday days or weekend days")
